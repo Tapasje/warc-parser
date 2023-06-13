@@ -1,3 +1,14 @@
+warcparser/html
+data/law0.warc.gz
+data/law1.warc.gz
+data/law2.warc.gz
+data/law3.warc.gz
+data/law4.warc.gz
+data/law5.warc.gz
+data/law6.warc.gz
+data/law7.warc.gz
+README.docx
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
