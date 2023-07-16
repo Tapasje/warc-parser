@@ -8,6 +8,7 @@ data/law5.warc.gz
 data/law6.warc.gz
 data/law7.warc.gz
 README.docx
+html/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

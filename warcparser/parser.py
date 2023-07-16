@@ -33,10 +33,14 @@ def sanitize_path(path):
 
     # Rejoin the sanitized directory names into a path
     sanitized_path = '/'.join(parts)
+    
+    # Remove the leading '/' if present
+    while sanitized_path.startswith('/'):
+        sanitized_path = sanitized_path[1:]
 
     return sanitized_path
 
-def clean_filename(filename, replacement='_'):
+def sanitize_filename(filename, replacement='_'):
     # Illegal characters for file names in Unix-based systems
     invalid_unix = {'/', '\0'}
 
@@ -102,40 +106,57 @@ def is_english(soup):
     except:
         return False
 
+def get_homepage(subject_uri: str):
+    parsed_url = urlparse(subject_uri)
+    domain = parsed_url.netloc.lower()
+    path = parsed_url.path.lower()
+
+    if path == '/' or not path:
+        return '/index.html', domain
+    
+    _, file = os.path.split(parsed_url.path.lower())
+
+    if file.startswith(('/index.', '/default.', '/home.', '/main.', '/welcome.')):
+        print(path, domain)
+        return path, domain
+    
+    return None, None
+
+def custom_path_join(a, b):
+    if b == '/':
+        return a
+    else:
+        return os.path.join(a, b)
+
 if __name__ == "__main__":
+    for i in range(8):
+        file_path = f"../data/law{i}.warc.gz"
+        file_size = os.stat(file_path).st_size
 
-    for i in range(8):  # Go up to but not including 8
-        file_name = f"../data/law{i}.warc.gz"
-        print(f"Now processing: {file_name}")
-        file_size = os.stat(file_name).st_size
-
+        print(f"Now processing: {file_path}")
         with tqdm(total=file_size, unit_scale=True, unit_divisor=1024, unit="B") as pbar:
-            with gzip.open(file_name, 'r') as warc_file:
+            with gzip.open(file_path, 'r') as warc_file:
                 
                 record = None
                 byte_list = []
-                
+
                 for line in warc_file:
                     pbar.update(len(line))
                     try:
                         if line.startswith(b'warc/0.9'):
                             if record is not None:
                                 try:
-                                    url = urlparse(record.subject_uri)
-                                    domain = url.netloc
-                                    path = url.path
+                                    path, domain = get_homepage(record.subject_uri)
+                                    if path is not None and domain is not None:      
+                                        path = os.path.normpath(path)
+                                        path, filename = os.path.split(path)
+                                        path, filename = (sanitize_path(path), sanitize_filename(filename))
 
-                                    if path == '/':
-                                        path = '/index.html'
-                                    path = os.path.normpath(path)
-                                    path, filename = os.path.split(path)
-                                    path = sanitize_path(path)
+                                        fileDir = os.path.dirname(os.path.realpath('__file__'))
+                                        basedir = os.path.join(*[fileDir, '../html', domain])
+                                        basedir = custom_path_join(basedir, path)
 
-                                    filename = clean_filename(filename)
-                                    basedir = os.path.join('html', domain, path.strip("\\"))
-
-                                    if not os.path.exists(os.path.join(basedir, filename)):
-                                        if (path == ''):
+                                        if not os.path.exists(os.path.join(basedir, filename)):
                                             html = extract_html(byte_list)
                                             soup = BeautifulSoup(html, features='html.parser')
 
@@ -149,6 +170,7 @@ if __name__ == "__main__":
 
                                 except Exception as e:
                                     raise Exception(e)
+                                    # logging.info(e)
                                 finally:
                                     record = None
                                     byte_list = []
