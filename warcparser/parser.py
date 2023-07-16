@@ -36,7 +36,7 @@ def sanitize_path(path):
 
     return sanitized_path
 
-def clean_filename(filename, replacement='_'):
+def sanitize_filename(filename, replacement='_'):
     # Illegal characters for file names in Unix-based systems
     invalid_unix = {'/', '\0'}
 
@@ -102,53 +102,61 @@ def is_english(soup):
     except:
         return False
 
+def get_homepage(subject_uri: str):
+    parsed_url = urlparse(subject_uri)
+    domain = parsed_url.netloc.lower()
+    path = parsed_url.path.lower()
+
+    if path == '/' or not path:
+        return '/index.html', domain
+
+    if path.startswith(('/index.', '/default.', '/home.')):
+        return path, domain
+    
+    return None, None
+
 if __name__ == "__main__":
+    for i in range(8):
+        file_path = f"../data/law{i}.warc.gz"
+        file_size = os.stat(file_path).st_size
 
-    for i in range(8):  # Go up to but not including 8
-        file_name = f"../data/law{i}.warc.gz"
-        print(f"Now processing: {file_name}")
-        file_size = os.stat(file_name).st_size
-
+        print(f"Now processing: {file_path}")
         with tqdm(total=file_size, unit_scale=True, unit_divisor=1024, unit="B") as pbar:
-            with gzip.open(file_name, 'r') as warc_file:
+            with gzip.open(file_path, 'r') as warc_file:
                 
                 record = None
                 byte_list = []
-                
+
                 for line in warc_file:
                     pbar.update(len(line))
                     try:
                         if line.startswith(b'warc/0.9'):
                             if record is not None:
                                 try:
-                                    url = urlparse(record.subject_uri)
-                                    domain = url.netloc
-                                    path = url.path
+                                    path, domain = get_homepage(record.subject_uri)
+                                    if path is not None and domain is not None:                             
+                                        path = os.path.normpath(path)
+                                        path, filename = os.path.split(path)
+                                        path, filename = (sanitize_path(path), sanitize_filename(filename))
 
-                                    if path == '/':
-                                        path = '/index.html'
-                                    path = os.path.normpath(path)
-                                    path, filename = os.path.split(path)
-                                    path = sanitize_path(path)
+                                        basedir = os.path.join('html', domain, path.strip("\\"))
 
-                                    filename = clean_filename(filename)
-                                    basedir = os.path.join('html', domain, path.strip("\\"))
+                                        if not os.path.exists(os.path.join(basedir, filename)):
+                                            if (path == ''):
+                                                html = extract_html(byte_list)
+                                                soup = BeautifulSoup(html, features='html.parser')
 
-                                    if not os.path.exists(os.path.join(basedir, filename)):
-                                        if (path == ''):
-                                            html = extract_html(byte_list)
-                                            soup = BeautifulSoup(html, features='html.parser')
+                                                if is_english(soup):
+                                                    if not os.path.isdir(basedir):
+                                                        os.makedirs(basedir, exist_ok=True)
 
-                                            if is_english(soup):
-                                                if not os.path.isdir(basedir):
-                                                    os.makedirs(basedir, exist_ok=True)
-
-                                                with open(os.path.join(basedir, filename), 'w', encoding='utf-8') as f:            
-                                                    f.write(soup.prettify())
-                                                    logging.info('Finished parsing %s' % record.subject_uri)
+                                                    with open(os.path.join(basedir, filename), 'w', encoding='utf-8') as f:            
+                                                        f.write(soup.prettify())
+                                                        logging.info('Finished parsing %s' % record.subject_uri)
 
                                 except Exception as e:
                                     raise Exception(e)
+                                    # logging.info(e)
                                 finally:
                                     record = None
                                     byte_list = []
