@@ -1,5 +1,5 @@
 # WARC files
-data/raw/law*.warc.gz
+data/raw/law*.warc
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

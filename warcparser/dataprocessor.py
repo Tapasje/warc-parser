@@ -1,12 +1,16 @@
 import csv
 import htmlmin
 
+from pathlib import Path
+
 
 class DataProcessor:
     def __init__(self, labels_file, hostnames_file, output_file, flush_interval=1000):
+        p = Path(output_file).resolve()
+
         # Step 1: Create dictionaries to store data
         self.data_dict = {}
-        self.output_file = output_file
+        self.output_file = str(p)
         self.flush_interval = flush_interval
         self.operations_since_last_flush = 0
 
@@ -53,13 +57,6 @@ class DataProcessor:
 
             self.csv_writer.writerow(
                 [html, self.flipped_data_dict[hostname]])
-
-            # Increment the operation count since the last flush
-            self.operations_since_last_flush += 1
-
-            # Flush and close the file if the flush interval is reached
-            if self.operations_since_last_flush >= self.flush_interval:
-                self.flush_and_close()
 
     def is_hostname_in_dict(self, hostname):
         """Check if a hostname is present in the flipped_data_dict."""
