@@ -63,14 +63,14 @@ def get_homepage(subject_uri: str):
 
     _, file = os.path.split(parsed_url.path.lower())
 
-    if file.startswith(('/index.', '/default.', '/home.', '/main.', '/welcome.')):
+    if file.startswith(('/index.', '/default.', '/home.', 'homepage.', '/main.', '/welcome.')):
         return path, domain
 
     return None, None
 
 def main(data_processor: DataProcessor = DataProcessor('../data/labels/webspam-uk2007-set1-1.0/WEBSPAM-UK2007-SET1-labels.txt',
     '../data/labels/webspam-uk2007-set1-1.0/WEBSPAM-UK2007-hostnames.txt',
-    '../data/processed/train_dataset.csv')) -> None:
+    '../data/processed/')) -> None:
     
     for i in range(8):
         file_path = f"../data/raw/law{i}.warc"

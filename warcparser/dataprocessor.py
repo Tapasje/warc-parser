@@ -10,14 +10,13 @@ class DataProcessor:
 
         # Step 1: Create dictionaries to store data
         self.data_dict = {}
-        self.output_file = str(p)
-        self.flush_interval = flush_interval
-        self.operations_since_last_flush = 0
 
         # Initialize the CSV file and keep it open
-        self.csvfile = open(self.output_file, 'w', newline='')
-        self.csv_writer = csv.writer(self.csvfile)
-        self.csv_writer.writerow(['text', 'label'])
+        self.html_file = open(str(p) + '/html_data.csv', 'w', newline='', encoding='utf-8')
+
+        self.html_csv_writer = csv.writer(self.html_file, delimiter='\t', quoting=csv.QUOTE_NONNUMERIC)
+
+        self.html_csv_writer.writerow(['html', 'label'])
 
         # Step 2: Read the file with labels
         with open(labels_file, 'r') as labels_file:
@@ -53,16 +52,18 @@ class DataProcessor:
     def write_to_csv(self, hostname, html):
         # Append data to the existing CSV file
         if (hostname in self.flipped_data_dict):
-            html = f'"{htmlmin.minify(html, remove_empty_space=True)}"'
+            minified = htmlmin.minify(html, remove_empty_space=True)
+            
+            cleaned_html = minified.replace('\n', ' ').replace('\r', '')
 
-            self.csv_writer.writerow(
-                [html, self.flipped_data_dict[hostname]])
+            label = self.flipped_data_dict[hostname]
 
+            self.html_csv_writer.writerow([cleaned_html, label])
+            
     def is_hostname_in_dict(self, hostname):
         """Check if a hostname is present in the flipped_data_dict."""
         return hostname in self.flipped_data_dict
 
     def __del__(self):
-        # Close the CSV file when the DpipataProcessor instance is deleted
-        if hasattr(self, 'csvfile'):
-            self.csvfile.close()
+        if hasattr(self, 'html_data'):
+            self.html_data.close()
